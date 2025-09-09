@@ -155,3 +155,60 @@ def cb_rewrite(m, o, u, s):
 
 def passthru(p):
     return p
+
+with gr.Blocks(title="Stutter Up") as ui:
+    with gr.Tabs():
+        with gr.Tab("Baseline"):
+            with gr.Row():
+                a_r1 = gr.Audio(label="Record Audio", sources=["microphone"], type="filepath")
+                a_f1 = gr.File(label="Audio Download", interactive=False)
+                b_t1 = gr.Button("1) Transcribe")
+            with gr.Row():
+                t_t1 = gr.Textbox(label="Transcribed Text (ASR)", interactive=False, lines=6)
+                t_o1 = gr.Textbox(label="Original Script (input)", lines=6)
+                dr1 = gr.Dropdown(choices=["gpt-4o-mini", "gpt-5"], value="gpt-4o-mini", label="LLM Model")
+                b_a1 = gr.Button("2) Analyze")
+            with gr.Row():
+                t_s1 = gr.Textbox(label="LLM Summary: Easy-to-Stutter Words", lines=8)
+                t_r1 = gr.Textbox(label="Revised Script", lines=8)
+                b_r1 = gr.Button("3) Revise Script")
+            with gr.Row():
+                a_r2 = gr.Audio(label="Post-hoc Record Audio", sources=["microphone"], type="filepath")
+                a_f2 = gr.File(label="Post-hoc Audio Download", interactive=False)
+
+            a_r1.change(fn=passthru, inputs=a_r1, outputs=a_f1)
+            b_t1.click(fn=cb_transcribe, inputs=[a_r1], outputs=[t_t1])
+            b_a1.click(fn=cb_basic, inputs=[dr1, t_o1, t_t1], outputs=[t_s1])
+            b_r1.click(fn=cb_rewrite, inputs=[dr1, t_o1, t_t1, t_s1], outputs=[t_r1])
+            a_r2.change(fn=passthru, inputs=a_r2, outputs=a_f2)
+
+        with gr.Tab("Baseline+IPA"):
+            with gr.Row():
+                a_r3 = gr.Audio(label="Record Audio", sources=["microphone"], type="filepath")
+                a_f3 = gr.File(label="Audio Download", interactive=False)
+                b_t2 = gr.Button("1) Transcribe")
+            with gr.Row():
+                t_t2 = gr.Textbox(label="Transcribed Text (ASR)", interactive=False, lines=6)
+                t_o2 = gr.Textbox(label="Original Script (input)", lines=6)
+                t_i2 = gr.Textbox(label="IPA Annotations (LLM Output)", interactive=False, lines=6)
+                dr2 = gr.Dropdown(choices=["gpt-4o-mini", "gpt-5"], value="gpt-4o-mini", label="LLM Model")
+                b_a2 = gr.Button("2) Analyze (IPA → Diagnosis)")
+            with gr.Row():
+                t_s2 = gr.Textbox(label="LLM Summary: Easy-to-Stutter Words (IPA-aware)", lines=8)
+                t_r2 = gr.Textbox(label="Revised Script", lines=8)
+                b_r2 = gr.Button("3) Revise Script")
+            with gr.Row():
+                a_r4 = gr.Audio(label="Post-hoc Record Audio", sources=["microphone"], type="filepath")
+                a_f4 = gr.File(label="Post-hoc Audio Download", interactive=False)
+
+            a_r3.change(fn=passthru, inputs=a_r3, outputs=a_f3)
+            b_t2.click(fn=cb_transcribe, inputs=[a_r3], outputs=[t_t2])
+            def pipe(m, o, t):
+                x, y = cb_ipa(m, o, t)
+                return x, y
+            b_a2.click(fn=pipe, inputs=[dr2, t_o2, t_t2], outputs=[t_i2, t_s2])
+            b_r2.click(fn=cb_rewrite, inputs=[dr2, t_o2, t_t2, t_s2], outputs=[t_r2])
+            a_r4.change(fn=passthru, inputs=a_r4, outputs=a_f4)
+
+if __name__ == "__main__":
+    ui.launch(share=False)
